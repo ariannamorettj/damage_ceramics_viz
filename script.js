@@ -32,51 +32,13 @@ const countryCoordinates = {
   "642": [45.9432, 24.9668]    // Romania
 };
 
-// Percorso relativo al CSV
 const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver2.csv';
 
-// Funzione per creare marker sulla mappa
-function addMarkers(data) {
-  data.forEach(row => {
-    const inventaire = row["inventaire"];
-    const countryCode = row["provenance (country code)"];
-    const provenanceText = row["provenance"];
+const palette = ["#4793AF", "#FFC470", "#DD5746", "#8B322C", "#B36A5E", "#A64942", "#D99152"];
+const groupCounts = {};
+const allMaterials = new Set();
+const allLacuna = new Set();
 
-    if (countryCode && countryCoordinates[countryCode]) {
-      const coords = countryCoordinates[countryCode];
-      // Crea il marker
-      const marker = L.marker(coords);
-      // Aggiungi un popup
-      marker.bindPopup(`<strong>Inventaire:</strong> ${inventaire}<br><strong>Provenance:</strong> ${provenanceText}`);
-      // Aggiungi il marker al gruppo cluster
-      markersCluster.addLayer(marker);
-    }
-  });
-}
-
-// Carica e parsa il CSV usando Papa Parse
-Papa.parse(csvFilePath, {
-  header: true,
-  download: true,
-  complete: function(results) {
-    const data = results.data;
-    addMarkers(data);
-  },
-  error: function(err) {
-    console.error("Errore nel caricamento del CSV: ", err);
-  }
-});
-
-
-
-
-// STACKED BAR CHART
-// Palette coerente con la tua
-const palette = [
-  "#4793AF", "#FFC470", "#DD5746", "#8B322C", "#B36A5E", "#A64942", "#D99152"
-];
-
-// Funzione di normalizzazione per "% lacunaire"
 function normalizeLacuna(val) {
   if (!val) return "altro";
   val = val.toString().replace(',', '.').replace('%', '').trim();
@@ -98,17 +60,14 @@ function normalizeLacuna(val) {
   }
 }
 
-// Struttura per raccogliere i dati
-const groupCounts = {}; // { '% lacunaire': { 'matériau simplifié': count } }
-const allMaterials = new Set();
-const allLacuna = new Set();
-
-// Carica e parsa il CSV
-Papa.parse('input_data_per_web/unified_dataset_ceramics_ver2.csv', {
+Papa.parse(csvFilePath, {
   header: true,
   download: true,
   complete: function(results) {
-    results.data.forEach(row => {
+    const data = results.data;
+    addMarkers(data);
+
+    data.forEach(row => {
       const rawLacuna = row["% lacunaire"];
       const material = row["matériau simplifié"];
       const lacuna = normalizeLacuna(rawLacuna);
@@ -118,24 +77,37 @@ Papa.parse('input_data_per_web/unified_dataset_ceramics_ver2.csv', {
       allLacuna.add(lacuna);
       allMaterials.add(material);
 
-      if (!groupCounts[lacuna]) {
-        groupCounts[lacuna] = {};
-      }
+      if (!groupCounts[lacuna]) groupCounts[lacuna] = {};
       groupCounts[lacuna][material] = (groupCounts[lacuna][material] || 0) + 1;
     });
 
     renderChart();
+    renderMaterialCards();
   },
   error: function(err) {
-    console.error("Errore nel caricamento del CSV per il grafico: ", err);
+    console.error("Errore nel caricamento del CSV: ", err);
   }
 });
 
-function renderChart() {
-  const labels = ["0-10%", "10-25%", "25-50%", "50-75%", "75-100%", "intervallo", "altro"]
-    .filter(label => allLacuna.has(label)); // filtra solo quelli presenti nei dati
+function addMarkers(data) {
+  data.forEach(row => {
+    const inventaire = row["inventaire"];
+    const countryCode = row["provenance (country code)"];
+    const provenanceText = row["provenance"];
 
+    if (countryCode && countryCoordinates[countryCode]) {
+      const coords = countryCoordinates[countryCode];
+      const marker = L.marker(coords);
+      marker.bindPopup(`<strong>Inventaire:</strong> ${inventaire}<br><strong>Provenance:</strong> ${provenanceText}`);
+      markersCluster.addLayer(marker);
+    }
+  });
+}
+
+function renderChart() {
+  const labels = ["0-10%", "10-25%", "25-50%", "50-75%", "75-100%", "intervallo", "altro"].filter(label => allLacuna.has(label));
   const sortedMaterials = Array.from(allMaterials).sort();
+
   const datasets = sortedMaterials.map((material, idx) => {
     return {
       label: material,
@@ -144,44 +116,110 @@ function renderChart() {
     };
   });
 
-  const chartData = {
-    labels: labels,
-    datasets: datasets
-  };
-
-  const config = {
+  new Chart(document.getElementById('lacunaChart'), {
     type: 'bar',
-    data: chartData,
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
     options: {
       responsive: true,
       plugins: {
-        legend: {
-          position: 'bottom'
-        },
-        title: {
-          display: true,
-          text: '% Lacunaire per Matériau (dinamico)'
-        }
+        legend: { position: 'bottom' },
+        title: { display: true, text: '% Lacunaire per Matériau (dinamico)' }
       },
       scales: {
-        x: {
-          stacked: true,
-          title: {
-            display: true,
-            text: '% Lacunaire'
-          }
-        },
-        y: {
-          stacked: true,
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Numero di reperti'
-          }
-        }
+        x: { stacked: true, title: { display: true, text: '% Lacunaire' } },
+        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Numero di reperti' } }
       }
     }
+  });
+}
+
+function renderMaterialCards() {
+  const container = document.getElementById("materialCardContainer");
+  container.innerHTML = "";
+
+  const colors = {
+    "0-10%": "#4793AF",
+    "10-25%": "#FFC470",
+    "25-50%": "#DD5746",
+    "50-75%": "#8B322C",
+    "75-100%": "#B36A5E",
+    "intervallo": "#A64942",
+    "altro": "#D99152"
   };
 
-  new Chart(document.getElementById('lacunaChart'), config);
+  const labels = Object.keys(colors);
+  const sortedMaterials = Array.from(allMaterials).sort();
+
+  sortedMaterials.forEach(material => {
+    const materialId = material.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    const distribuzione = labels.map(lacuna => ({
+      categoria: lacuna,
+      count: groupCounts[lacuna]?.[material] || 0
+    })).filter(entry => entry.count > 0);
+
+    const imagePath = `assets/materials/${materialId}.jpg`;
+    console.log(imagePath)
+
+    // Card HTML
+    const cardHTML = `
+      <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 shadow-sm" role="button" data-bs-toggle="modal" data-bs-target="#modal-${materialId}">
+          <img src="${imagePath}" class="card-img-top" alt="${material}">
+          <div class="card-body text-center">
+            <h5 class="card-title">${material}</h5>
+            <p class="text-muted small">Clicca per vedere la distribuzione</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Modal HTML
+    const modalHTML = `
+      <div class="modal fade" id="modal-${materialId}" tabindex="-1" aria-labelledby="modalLabel-${materialId}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header" style="background-color: #4793AF; color: white;">
+              <h5 class="modal-title" id="modalLabel-${materialId}">Distribuzione lacunaire – ${material}</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body text-center">
+              <canvas id="chart-${materialId}" width="400" height="400"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.insertAdjacentHTML("beforeend", cardHTML);
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+    // Inizializza il grafico quando il modal viene aperto
+    const targetModal = document.getElementById(`modal-${materialId}`);
+    targetModal.addEventListener('shown.bs.modal', function () {
+      const ctx = document.getElementById(`chart-${materialId}`).getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: distribuzione.map(d => d.categoria),
+          datasets: [{
+            data: distribuzione.map(d => d.count),
+            backgroundColor: distribuzione.map(d => colors[d.categoria])
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            title: {
+              display: true,
+              text: `% Lacunaire – ${material}`
+            }
+          }
+        }
+      });
+    }, { once: true });
+  });
 }
