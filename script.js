@@ -1,34 +1,34 @@
-// Inizializza la mappa centrata in Europa
+// Initialize the map centered in Europe
 const map = L.map('map').setView([50, 10], 4);
 
-// Aggiungi il layer di base OpenStreetMap
+// Add the base layer OpenStreetMap
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// Crea un gruppo per i marker cluster
+// Create a group for marker clusters
 const markersCluster = L.markerClusterGroup();
 map.addLayer(markersCluster);
 
-/* Dizionario delle coordinate dei paesi (basato su codici numerici) */
+/* Dictionary of country coordinates (based on numeric codes) */
 const countryCoordinates = {
-  "250": [46.2276, 2.2137],    // Francia
-  "380": [41.8719, 12.5674],   // Italia
-  "276": [51.1657, 10.4515],   // Germania
-  "724": [40.4637, -3.7492],   // Spagna
-  "56":  [50.5039, 4.4699],    // Belgio
-  "528": [52.1326, 5.2913],    // Paesi Bassi
-  "246": [61.9241, 25.7482],   // Finlandia
-  "756": [46.8182, 8.2275],    // Svizzera
-  "156": [35.8617, 104.1954],  // Cina
+  "250": [46.2276, 2.2137],    // France
+  "380": [41.8719, 12.5674],   // Italy
+  "276": [51.1657, 10.4515],   // Germany
+  "724": [40.4637, -3.7492],   // Spain
+  "56":  [50.5039, 4.4699],    // Belgium
+  "528": [52.1326, 5.2913],    // Netherlands
+  "246": [61.9241, 25.7482],   // Finland
+  "756": [46.8182, 8.2275],    // Switzerland
+  "156": [35.8617, 104.1954],  // China
   "364": [32.4279, 53.6880],   // Iran
   "356": [20.5937, 78.9629],   // India
   "368": [33.2232, 43.6793],   // Iraq
-  "616": [51.9194, 19.1451],   // Polonia
-  "620": [39.3999, -8.2245],   // Portogallo
-  "818": [26.8206, 30.8025],   // Egitto
-  "826": [55.3781, -3.4360],   // Regno Unito
+  "616": [51.9194, 19.1451],   // Poland
+  "620": [39.3999, -8.2245],   // Portugal
+  "818": [26.8206, 30.8025],   // Egypt
+  "826": [55.3781, -3.4360],   // United Kingdom
   "642": [45.9432, 24.9668]    // Romania
 };
 
@@ -40,15 +40,17 @@ const allMaterials = new Set();
 const allLacuna = new Set();
 
 function normalizeLacuna(val) {
-  if (!val) return "altro";
+  if (!val) return "other";
   val = val.toString().replace(',', '.').replace('%', '').trim();
   try {
+    // If the value contains '<' and does not contain 'x'
     if (val.includes('<') && !val.includes('x')) {
       const num = parseFloat(val.replace('<', ''));
       if (num <= 10) return "0-10%";
       if (num <= 25) return "10-25%";
     }
-    if (val.includes('x') || val.includes('-')) return "intervallo";
+    // If the value contains 'x' or '-'
+    if (val.includes('x') || val.includes('-')) return "range";
     const num = parseFloat(val);
     if (num <= 10) return "0-10%";
     if (num <= 25) return "10-25%";
@@ -56,7 +58,7 @@ function normalizeLacuna(val) {
     if (num <= 75) return "50-75%";
     return "75-100%";
   } catch {
-    return "altro";
+    return "other";
   }
 }
 
@@ -85,7 +87,7 @@ Papa.parse(csvFilePath, {
     renderMaterialCards();
   },
   error: function(err) {
-    console.error("Errore nel caricamento del CSV: ", err);
+    console.error("Error loading CSV: ", err);
   }
 });
 
@@ -97,15 +99,17 @@ function addMarkers(data) {
 
     if (countryCode && countryCoordinates[countryCode]) {
       const coords = countryCoordinates[countryCode];
+      // Create a marker
       const marker = L.marker(coords);
-      marker.bindPopup(`<strong>Inventaire:</strong> ${inventaire}<br><strong>Provenance:</strong> ${provenanceText}`);
+      // Add a popup with the inventory and provenance text
+      marker.bindPopup(`<strong>Inventory:</strong> ${inventaire}<br><strong>Provenance:</strong> ${provenanceText}`);
       markersCluster.addLayer(marker);
     }
   });
 }
 
 function renderChart() {
-  const labels = ["0-10%", "10-25%", "25-50%", "50-75%", "75-100%", "intervallo", "altro"].filter(label => allLacuna.has(label));
+  const labels = ["0-10%", "10-25%", "25-50%", "50-75%", "75-100%", "range", "other"].filter(label => allLacuna.has(label));
   const sortedMaterials = Array.from(allMaterials).sort();
 
   const datasets = sortedMaterials.map((material, idx) => {
@@ -126,11 +130,11 @@ function renderChart() {
       responsive: true,
       plugins: {
         legend: { position: 'bottom' },
-        title: { display: true, text: '% Lacunaire per Matériau (dinamico)' }
+        title: { display: true, text: '% Lacuna per Material (dynamic)' }
       },
       scales: {
-        x: { stacked: true, title: { display: true, text: '% Lacunaire' } },
-        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Numero di reperti' } }
+        x: { stacked: true, title: { display: true, text: '% Lacuna' } },
+        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Number of artifacts' } }
       }
     }
   });
@@ -146,8 +150,8 @@ function renderMaterialCards() {
     "25-50%": "#DD5746",
     "50-75%": "#8B322C",
     "75-100%": "#B36A5E",
-    "intervallo": "#A64942",
-    "altro": "#D99152"
+    "range": "#A64942",
+    "other": "#D99152"
   };
 
   const labels = Object.keys(colors);
@@ -155,8 +159,8 @@ function renderMaterialCards() {
 
   sortedMaterials.forEach(material => {
     const materialId = material.toLowerCase().replace(/[^a-z0-9]/g, "-");
-    const distribuzione = labels.map(lacuna => ({
-      categoria: lacuna,
+    const distribution = labels.map(lacuna => ({
+      category: lacuna,
       count: groupCounts[lacuna]?.[material] || 0
     })).filter(entry => entry.count > 0);
 
@@ -170,7 +174,7 @@ function renderMaterialCards() {
           <img src="${imagePath}" class="card-img-top" alt="${material}">
           <div class="card-body text-center">
             <h5 class="card-title">${material}</h5>
-            <p class="text-muted small">Clicca per vedere la distribuzione</p>
+            <p class="text-muted small">Click to see the distribution</p>
           </div>
         </div>
       </div>
@@ -182,8 +186,8 @@ function renderMaterialCards() {
         <div class="modal-dialog modal-dialog-centered modal-lg">
           <div class="modal-content">
             <div class="modal-header" style="background-color: #4793AF; color: white;">
-              <h5 class="modal-title" id="modalLabel-${materialId}">Distribuzione lacunaire – ${material}</h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+              <h5 class="modal-title" id="modalLabel-${materialId}">Lacuna Distribution – ${material}</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body text-center">
               <canvas id="chart-${materialId}" width="400" height="400"></canvas>
@@ -196,17 +200,17 @@ function renderMaterialCards() {
     container.insertAdjacentHTML("beforeend", cardHTML);
     document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-    // Inizializza il grafico quando il modal viene aperto
+    // Initialize the chart when the modal is shown
     const targetModal = document.getElementById(`modal-${materialId}`);
     targetModal.addEventListener('shown.bs.modal', function () {
       const ctx = document.getElementById(`chart-${materialId}`).getContext('2d');
       new Chart(ctx, {
         type: 'doughnut',
         data: {
-          labels: distribuzione.map(d => d.categoria),
+          labels: distribution.map(d => d.category),
           datasets: [{
-            data: distribuzione.map(d => d.count),
-            backgroundColor: distribuzione.map(d => colors[d.categoria])
+            data: distribution.map(d => d.count),
+            backgroundColor: distribution.map(d => colors[d.category])
           }]
         },
         options: {
@@ -215,7 +219,7 @@ function renderMaterialCards() {
             legend: { position: 'bottom' },
             title: {
               display: true,
-              text: `% Lacunaire – ${material}`
+              text: `% Lacuna – ${material}`
             }
           }
         }
