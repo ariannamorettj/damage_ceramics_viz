@@ -14,22 +14,25 @@ map.addLayer(markersCluster);
 /* Dictionary of country coordinates (based on numeric codes) */
 const countryCoordinates = {
   "250": [46.2276, 2.2137],    // France
-  "380": [41.8719, 12.5674],   // Italy
-  "276": [51.1657, 10.4515],   // Germany
-  "724": [40.4637, -3.7492],   // Spain
-  "56":  [50.5039, 4.4699],    // Belgium
-  "528": [52.1326, 5.2913],    // Netherlands
-  "246": [61.9241, 25.7482],   // Finland
-  "756": [46.8182, 8.2275],    // Switzerland
-  "156": [35.8617, 104.1954],  // China
-  "364": [32.4279, 53.6880],   // Iran
-  "356": [20.5937, 78.9629],   // India
-  "368": [33.2232, 43.6793],   // Iraq
-  "616": [51.9194, 19.1451],   // Poland
-  "620": [39.3999, -8.2245],   // Portugal
-  "818": [26.8206, 30.8025],   // Egypt
-  "826": [55.3781, -3.4360],   // United Kingdom
-  "642": [45.9432, 24.9668]    // Romania
+  "380": [41.8719, 12.5674],    // Italy
+  "276": [51.1657, 10.4515],    // Germany
+  "724": [40.4637, -3.7492],    // Spain
+  "56":  [50.5039, 4.4699],     // Belgium
+  "528": [52.1326, 5.2913],     // Netherlands
+  "246": [61.9241, 25.7482],    // Finland
+  "756": [46.8182, 8.2275],     // Switzerland
+  "156": [35.8617, 104.1954],   // China
+  "364": [32.4279, 53.6880],    // Iran
+  "356": [20.5937, 78.9629],    // India
+  "368": [33.2232, 43.6793],    // Iraq
+  "616": [51.9194, 19.1451],    // Poland
+  "620": [39.3999, -8.2245],    // Portugal
+  "818": [26.8206, 30.8025],    // Egypt
+  "826": [55.3781, -3.4360],    // United Kingdom
+  "642": [45.9432, 24.9668],    // Romania
+  "392": [36.2048, 138.2529],   // Japan
+  "MAG": [32.0000, -5.0000],    // Maghreb region (approximate)
+  "604": [-12.0464, -77.0428]   // Peru (Lima)
 };
 
 const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver2.csv';
@@ -59,13 +62,11 @@ function normalizeLacuna(val) {
   if (!val) return "other";
   val = val.toString().replace(',', '.').replace('%', '').trim();
   try {
-    // If the value contains '<' and does not contain 'x'
     if (val.includes('<') && !val.includes('x')) {
       const num = parseFloat(val.replace('<', ''));
       if (num <= 10) return "0-10%";
       if (num <= 25) return "10-25%";
     }
-    // If the value contains 'x' or '-'
     if (val.includes('x') || val.includes('-')) return "range";
     const num = parseFloat(val);
     if (num <= 10) return "0-10%";
@@ -84,18 +85,26 @@ Papa.parse(csvFilePath, {
   download: true,
   complete: function(results) {
     const data = results.data;
+    console.log(`Total rows in CSV: ${data.length}`);
+
     addMarkers(data);
+
+    // Array to store rows that cannot be processed
+    const unprocessedRows = [];
 
     // Process each row for chart and card rendering
     data.forEach(row => {
       const rawLacuna = row["% lacunaire"];
       const rawMaterial = row["matériau simplifié"] || "";
-      // Translate the material using the dictionary (lowercase and trim for matching)
       const materialKey = rawMaterial.trim().toLowerCase();
       const translatedMaterial = materialTranslations[materialKey] || rawMaterial;
       const lacuna = normalizeLacuna(rawLacuna);
 
-      if (!lacuna || !rawMaterial) return;
+      // Log rows that do not have both a material and lacuna value
+      if (!lacuna || !rawMaterial) {
+        unprocessedRows.push(row);
+        return;
+      }
 
       allLacuna.add(lacuna);
       allMaterials.add(translatedMaterial);
@@ -103,6 +112,13 @@ Papa.parse(csvFilePath, {
       if (!groupCounts[lacuna]) groupCounts[lacuna] = {};
       groupCounts[lacuna][translatedMaterial] = (groupCounts[lacuna][translatedMaterial] || 0) + 1;
     });
+
+    console.log(`Processed entries: ${Array.from(allMaterials).length} materials, ${Array.from(allLacuna).length} lacuna labels.`);
+    if (unprocessedRows.length > 0) {
+      console.warn("Rows that could not be processed:", unprocessedRows);
+    } else {
+      console.log("All rows processed successfully.");
+    }
 
     renderChart();
     renderMaterialCards();
@@ -116,8 +132,17 @@ Papa.parse(csvFilePath, {
 function addMarkers(data) {
   data.forEach(row => {
     const inventaire = row["inventaire"];
-    const countryCode = row["provenance (country code)"];
+    let countryCode = row["provenance (country code)"];
     const provenanceText = row["provenance"];
+
+    if (countryCode) {
+      // Split by semicolon and take the first value
+      countryCode = countryCode.split(';')[0].trim();
+      // Remove any occurrence of "(?)"
+      countryCode = countryCode.replace(/\(\?\)/g, '').trim();
+    } else {
+      console.warn(`Row with inventory ${inventaire} has no country code.`);
+    }
 
     if (countryCode && countryCoordinates[countryCode]) {
       const coords = countryCoordinates[countryCode];
@@ -126,6 +151,8 @@ function addMarkers(data) {
       // Add a popup with the inventory and provenance text
       marker.bindPopup(`<strong>Inventory:</strong> ${inventaire}<br><strong>Provenance:</strong> ${provenanceText}`);
       markersCluster.addLayer(marker);
+    } else {
+      console.warn(`Row with inventory ${inventaire} has an unrecognized country code: ${countryCode}`);
     }
   });
 }
