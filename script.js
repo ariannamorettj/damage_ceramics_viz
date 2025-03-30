@@ -32,7 +32,8 @@ const countryCoordinates = {
   "642": [45.9432, 24.9668],    // Romania
   "392": [36.2048, 138.2529],   // Japan
   "MAG": [32.0000, -5.0000],    // Maghreb region (approximate)
-  "604": [-12.0464, -77.0428]   // Peru (Lima)
+  "604": [-12.0464, -77.0428],   // Peru (Lima)
+  "MED": [41.33, 19.82] // Mediterranean area (roman - bizantine influence)
 };
 
 const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver2.csv';
