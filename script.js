@@ -39,6 +39,22 @@ const groupCounts = {};
 const allMaterials = new Set();
 const allLacuna = new Set();
 
+// Dictionary to translate French material names to English
+const materialTranslations = {
+  "terre cuite": "Terracotta",
+  "terraglia": "Creamware",
+  "porcellaine": "Porcellain",
+  "porceclaine": "Porcellain",
+  "faïence": "Earthenware",
+  "grés": "Stonewear",
+  "quartz": "Quartz",
+  "mixte": "Mix",
+  "métal": "Metal",
+  "mixte(terre cuite+quartz)": "Mix (Terracotta + Quartz)",
+  "mixte (grés + métal)": "Mix (Stonewear + Metal)"
+};
+
+// Function to normalize the lacuna percentage value
 function normalizeLacuna(val) {
   if (!val) return "other";
   val = val.toString().replace(',', '.').replace('%', '').trim();
@@ -62,6 +78,7 @@ function normalizeLacuna(val) {
   }
 }
 
+// Load and parse the CSV file using Papa Parse
 Papa.parse(csvFilePath, {
   header: true,
   download: true,
@@ -69,18 +86,22 @@ Papa.parse(csvFilePath, {
     const data = results.data;
     addMarkers(data);
 
+    // Process each row for chart and card rendering
     data.forEach(row => {
       const rawLacuna = row["% lacunaire"];
-      const material = row["matériau simplifié"];
+      const rawMaterial = row["matériau simplifié"] || "";
+      // Translate the material using the dictionary (lowercase and trim for matching)
+      const materialKey = rawMaterial.trim().toLowerCase();
+      const translatedMaterial = materialTranslations[materialKey] || rawMaterial;
       const lacuna = normalizeLacuna(rawLacuna);
 
-      if (!lacuna || !material) return;
+      if (!lacuna || !rawMaterial) return;
 
       allLacuna.add(lacuna);
-      allMaterials.add(material);
+      allMaterials.add(translatedMaterial);
 
       if (!groupCounts[lacuna]) groupCounts[lacuna] = {};
-      groupCounts[lacuna][material] = (groupCounts[lacuna][material] || 0) + 1;
+      groupCounts[lacuna][translatedMaterial] = (groupCounts[lacuna][translatedMaterial] || 0) + 1;
     });
 
     renderChart();
@@ -91,6 +112,7 @@ Papa.parse(csvFilePath, {
   }
 });
 
+// Function to add markers to the map based on country coordinates
 function addMarkers(data) {
   data.forEach(row => {
     const inventaire = row["inventaire"];
@@ -108,6 +130,7 @@ function addMarkers(data) {
   });
 }
 
+// Function to render the chart (bar chart for lacuna distribution)
 function renderChart() {
   const labels = ["0-10%", "10-25%", "25-50%", "50-75%", "75-100%", "range", "other"].filter(label => allLacuna.has(label));
   const sortedMaterials = Array.from(allMaterials).sort();
@@ -140,6 +163,18 @@ function renderChart() {
   });
 }
 
+// Dictionary of background images for materials
+const backgroundImages = {
+  "Earthenware": "assets/materials/fa-ence.jpg",
+  "Stonewear": "assets/materials/gr-s.jpg",
+  "Mix (Stonewear + Metal)": "assets/materials/mixte--gr-s---m-tal-.jpg",
+  "Mix (Terracotta + Quartz)": "assets/materials/mixte-terre-cuite-quartz-.jpg",
+  "Porcellain": "assets/materials/porceclaine.jpg",
+  "Creamware": "assets/materials/terraglia.jpg",
+  "Terracotta": "assets/materials/terre-cuite.jpg"
+};
+
+// Function to render material cards using Bootstrap collapse sections and modals
 function renderMaterialCards() {
   const container = document.getElementById("materialCardContainer");
   container.innerHTML = "";
@@ -154,24 +189,26 @@ function renderMaterialCards() {
     "other": "#D99152"
   };
 
-  const labels = Object.keys(colors);
+  const lacunaLabels = Object.keys(colors);
+  // Sorted list of translated materials
   const sortedMaterials = Array.from(allMaterials).sort();
 
   sortedMaterials.forEach(material => {
     const materialId = material.toLowerCase().replace(/[^a-z0-9]/g, "-");
-    const distribution = labels.map(lacuna => ({
+    const distribution = lacunaLabels.map(lacuna => ({
       category: lacuna,
       count: groupCounts[lacuna]?.[material] || 0
     })).filter(entry => entry.count > 0);
 
-    const imagePath = `assets/materials/${materialId}.jpg`;
-    console.log(imagePath)
+    // Use the background image from the dictionary if available
+    const imagePath = backgroundImages[material] || `assets/materials/${materialId}.jpg`;
+    console.log("Image path:", imagePath);
 
     // Card HTML
     const cardHTML = `
       <div class="col-md-6 col-lg-4 mb-4">
         <div class="card h-100 shadow-sm" role="button" data-bs-toggle="modal" data-bs-target="#modal-${materialId}">
-          <img src="${imagePath}" class="card-img-top" alt="${material}">
+          <img src="${imagePath}" class="card-img-top" alt="${material}" onerror="this.onerror=null;this.src='assets/placeholder.jpeg';">
           <div class="card-body text-center">
             <h5 class="card-title">${material}</h5>
             <p class="text-muted small">Click to see the distribution</p>
