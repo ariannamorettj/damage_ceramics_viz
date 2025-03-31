@@ -3,7 +3,7 @@
 
 body {
   margin: 0;
-  font-family: 'Lato', sans-serif;
+  font-family: 'Lato', sans-seif;
   color: #000000;
   background-color: #FFFFFF;
 }
@@ -51,11 +51,14 @@ body {
 }
 
 .hero-image h1 {
-  font-family: 'Righteous', cursive;
+  font-family: 'Agu Display', cursive;
   font-size: 3.2rem;
   letter-spacing: 1px;
 }
 
+h2{
+  font-family: 'Righteous', cursive;
+}
 
 /* Map Section */
 #map {
@@ -236,6 +239,21 @@ footer {
   background: url('assets/filling/11.jpg') no-repeat center center;
   background-size: cover;
 }
+
+
+#mic-hero h1 {
+  font-family: 'Agu Display', cursive;
+  font-size: 3.2rem;
+  letter-spacing: 1px;
+}
+
+#sevres-hero h1 {
+  font-family: 'Agu Display', cursive;
+  font-size: 3.2rem;
+  letter-spacing: 1px;
+}
+
+
 
 
 

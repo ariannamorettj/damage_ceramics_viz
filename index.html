@@ -14,6 +14,8 @@
   <!-- Font Awesome (for social icons) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Righteous&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Agu+Display&display=swap" rel="stylesheet">
+
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -69,7 +71,23 @@
   <section id="chart-section" class="py-5">
     <div class="container">
       <h2 class="text-center mb-4">% Lacunarity by Material</h2>
-      <canvas id="lacunaChart" width="800" height="400"></canvas>
+      <div class="row">
+        <!-- Chart 1: Raw values (stacked bar) -->
+        <div class="col-md-12 mb-5">
+          <h3 class="text-center">Raw % Lacuna Values per Material</h3>
+          <canvas id="chartAllData" width="800" height="400"></canvas>
+        </div>
+        <!-- Chart 2: Approximated groups (stacked bar) -->
+        <div class="col-md-12 mb-5">
+          <h3 class="text-center">Approximated % Lacuna Groups per Material</h3>
+          <canvas id="chartApprox" width="800" height="400"></canvas>
+        </div>
+        <!-- Chart 3: Average numeric value per material (bar chart) -->
+        <div class="col-md-12">
+          <h3 class="text-center">Average Numeric % Lacuna per Material</h3>
+          <canvas id="chartMaterialAverage" width="800" height="400"></canvas>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -144,7 +162,7 @@
             </div>
           </div>
         </div>
-        <!-- You can add more team members by duplicating col-md-6 col-lg-4 -->
+        <!-- Additional team members can be added here -->
       </div>
     </div>
   </section>

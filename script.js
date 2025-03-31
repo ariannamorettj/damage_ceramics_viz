@@ -32,25 +32,21 @@ const countryCoordinates = {
   "642": [45.9432, 24.9668],    // Romania
   "392": [36.2048, 138.2529],   // Japan
   "MAG": [32.0000, -5.0000],    // Maghreb region (approximate)
-  "604": [-12.0464, -77.0428],   // Peru (Lima)
-  "MED": [41.0082, 28.9784], // Mediterranean area (Istanbul: chosen for characteristics related to the object itself)
+  "604": [-12.0464, -77.0428],  // Peru (Lima)
+  "MED": [41.0082, 28.9784],    // Mediterranean area (Istanbul)
   "788": [33.8869, 9.5375]      // Tunisia (country center)
-
 };
 
-const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver3.csv';
+const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver5.csv';
 
 const palette = ["#4793AF", "#FFC470", "#DD5746", "#8B322C", "#B36A5E", "#A64942", "#D99152"];
-const groupCounts = {};
 const allMaterials = new Set();
-const allLacuna = new Set();
 
 // Dictionary to translate French material names to English
 const materialTranslations = {
   "terre cuite": "Terracotta",
   "terraglia": "Creamware",
-  "porcellaine": "Porcellain",
-  "porceclaine": "Porcellain",
+  "porcelaine": "Porcellain",
   "faïence": "Earthenware",
   "grés": "Stonewear",
   "quartz": "Quartz",
@@ -60,7 +56,7 @@ const materialTranslations = {
   "mixte (grés + métal)": "Mix (Stonewear + Metal)"
 };
 
-// Function to normalize the lacuna percentage value
+// (La funzione normalizeLacuna non viene più utilizzata per i chart, ma la lasciamo per eventuali altre necessità)
 function normalizeLacuna(val) {
   if (!val) return "other";
   val = val.toString().replace(',', '.').replace('%', '').trim();
@@ -82,6 +78,61 @@ function normalizeLacuna(val) {
   }
 }
 
+// --- NEW DATA STRUCTURES for the three visualizations ---
+// Chart 1: raggruppamento per valore "raw" incontrato
+const groupCountsRaw = {};
+
+// Chart 2: raggruppamento per valori approssimati
+// (usa questo mapping per aggregare)
+const valoriApproximati = {
+  "0": ["0"],
+  "5": ["<5", "0-5"],
+  "10": ["<10", "10"],
+  "15": ["15", "10-20", "10-15"],  // "10-15" aggiunto per coerenza
+  "20": ["15-20", "20"],
+  "25": ["<25", "20-25"],
+  "30": ["30", "<30", "25-30"],
+  "35": ["30-40", ">30", "35"],
+  "40": ["40", "<40"],
+  "45": [],
+  "50": ["50"],
+  ">50": [">50", ">70", "60"],
+  "unknown": ["(?)"]
+};
+const groupCountsApprox = {};
+
+// Chart 3: per il calcolo della media numerica (% lacuna) per materiale
+// (usa questo mapping per convertire le etichette in valore numerico)
+const mappaturaValori = {
+  "<10": 8,
+  "40": 40,
+  "15": 15,
+  "15-20": 17,
+  "10-15": 12,
+  "30": 30,
+  "10": 10,
+  "30-40": 35,
+  "50": 50,
+  "<40": 38,
+  "(?)": "unknown",
+  "0": 0,
+  "<5": 3,
+  "<30": 28,
+  "0-5": 2,
+  "20": 20,
+  "10-20": 15,
+  ">50": 52,
+  "<25": 23,
+  ">70": 72,
+  ">30": 32,
+  "20-25": 22,
+  "35": 35,
+  "25-30": 27,
+  "60": 60
+};
+const materialSums = {};   // somma dei valori numerici per materiale
+const materialCounts = {}; // numero di oggetti per materiale
+
 // Load and parse the CSV file using Papa Parse
 Papa.parse(csvFilePath, {
   header: true,
@@ -92,38 +143,62 @@ Papa.parse(csvFilePath, {
 
     addMarkers(data);
 
-    // Array to store rows that cannot be processed
     const unprocessedRows = [];
 
-    // Process each row for chart and card rendering
     data.forEach(row => {
       const rawLacuna = row["% lacunaire"];
       const rawMaterial = row["matériau simplifié"] || "";
       const materialKey = rawMaterial.trim().toLowerCase();
       const translatedMaterial = materialTranslations[materialKey] || rawMaterial;
-      const lacuna = normalizeLacuna(rawLacuna);
 
-      // Log rows that do not have both a material and lacuna value
-      if (!lacuna || !rawMaterial) {
+      if (!rawLacuna || !rawMaterial) {
         unprocessedRows.push(row);
         return;
       }
 
-      allLacuna.add(lacuna);
+      const trimmedLacuna = rawLacuna.trim();
       allMaterials.add(translatedMaterial);
 
-      if (!groupCounts[lacuna]) groupCounts[lacuna] = {};
-      groupCounts[lacuna][translatedMaterial] = (groupCounts[lacuna][translatedMaterial] || 0) + 1;
+      // Chart 1: raggruppa per valore "raw" della % lacunaire
+      if (!groupCountsRaw[trimmedLacuna]) {
+        groupCountsRaw[trimmedLacuna] = {};
+      }
+      groupCountsRaw[trimmedLacuna][translatedMaterial] = (groupCountsRaw[trimmedLacuna][translatedMaterial] || 0) + 1;
+
+      // Chart 2: raggruppa in base al mapping dei valori approssimati
+      for (const key in valoriApproximati) {
+        if (valoriApproximati[key].includes(trimmedLacuna)) {
+          if (!groupCountsApprox[key]) {
+            groupCountsApprox[key] = {};
+          }
+          groupCountsApprox[key][translatedMaterial] = (groupCountsApprox[key][translatedMaterial] || 0) + 1;
+          break; // si assume che ogni valore rientri in un solo gruppo
+        }
+      }
+
+      // Chart 3: accumula il valore numerico per calcolare la media per materiale
+      const numVal = mappaturaValori[trimmedLacuna];
+      if (numVal !== undefined && numVal !== "unknown") {
+        if (!materialSums[translatedMaterial]) {
+          materialSums[translatedMaterial] = 0;
+          materialCounts[translatedMaterial] = 0;
+        }
+        materialSums[translatedMaterial] += numVal;
+        materialCounts[translatedMaterial] += 1;
+      }
     });
 
-    console.log(`Processed entries: ${Array.from(allMaterials).length} materials, ${Array.from(allLacuna).length} lacuna labels.`);
+    console.log(`Processed materials: ${Array.from(allMaterials).length}`);
     if (unprocessedRows.length > 0) {
       console.warn("Rows that could not be processed:", unprocessedRows);
     } else {
       console.log("All rows processed successfully.");
     }
 
-    renderChart();
+    // Render the three charts
+    renderChartAllData();
+    renderChartApprox();
+    renderChartMaterialAverage();
     renderMaterialCards();
   },
   error: function(err) {
@@ -149,9 +224,7 @@ function addMarkers(data) {
 
     if (countryCode && countryCoordinates[countryCode]) {
       const coords = countryCoordinates[countryCode];
-      // Create a marker
       const marker = L.marker(coords);
-      // Add a popup with the inventory and provenance text
       marker.bindPopup(`<strong>Inventory:</strong> ${inventaire}<br><strong>Provenance:</strong> ${provenanceText}`);
       markersCluster.addLayer(marker);
     } else {
@@ -160,20 +233,46 @@ function addMarkers(data) {
   });
 }
 
-// Function to render the chart (bar chart for lacuna distribution)
-function renderChart() {
-  const labels = ["0-10%", "10-25%", "25-50%", "50-75%", "75-100%", "range", "other"].filter(label => allLacuna.has(label));
+// --- Chart Rendering Functions ---
+
+// Chart 1: Stacked bar chart con gruppi per ogni valore "raw" di "% lacunaire"
+// Ordinamento semantico: se inizia con "<" o ">" viene modificato l'effettivo valore per posizionarlo correttamente.
+function renderChartAllData() {
+  function parseLabel(label) {
+    label = label.trim();
+    if (label.startsWith("<")) {
+      const num = parseFloat(label.slice(1));
+      return num - 0.1;
+    }
+    if (label.startsWith(">")) {
+      const num = parseFloat(label.slice(1));
+      return num + 0.1;
+    }
+    if (label.includes("-")) {
+      const parts = label.split("-");
+      if (parts.length === 2) {
+        const a = parseFloat(parts[0]);
+        const b = parseFloat(parts[1]);
+        if (!isNaN(a) && !isNaN(b)) {
+          return (a + b) / 2;
+        }
+      }
+    }
+    const num = parseFloat(label);
+    if (!isNaN(num)) return num;
+    return Infinity;
+  }
+
+  const labels = Array.from(Object.keys(groupCountsRaw)).sort((a, b) => parseLabel(a) - parseLabel(b));
   const sortedMaterials = Array.from(allMaterials).sort();
 
-  const datasets = sortedMaterials.map((material, idx) => {
-    return {
-      label: material,
-      data: labels.map(lacuna => (groupCounts[lacuna]?.[material] || 0)),
-      backgroundColor: palette[idx % palette.length]
-    };
-  });
+  const datasets = sortedMaterials.map((material, idx) => ({
+    label: material,
+    data: labels.map(lacuna => (groupCountsRaw[lacuna]?.[material] || 0)),
+    backgroundColor: palette[idx % palette.length]
+  }));
 
-  new Chart(document.getElementById('lacunaChart'), {
+  new Chart(document.getElementById('chartAllData'), {
     type: 'bar',
     data: {
       labels: labels,
@@ -183,17 +282,98 @@ function renderChart() {
       responsive: true,
       plugins: {
         legend: { position: 'bottom' },
-        title: { display: true, text: '% Lacuna per Material (dynamic)' }
+        title: { display: true, text: '% Lacuna (Raw Values) per Material' }
       },
       scales: {
-        x: { stacked: true, title: { display: true, text: '% Lacuna' } },
-        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Number of artifacts' } }
+        x: { stacked: true, title: { display: true, text: 'Raw % Lacuna Values' } },
+        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Number of Artifacts' } }
       }
     }
   });
 }
 
-// Dictionary of background images for materials
+// Chart 2: Stacked bar chart raggruppato con i valori approssimati
+function renderChartApprox() {
+  // Ordine desiderato per le colonne
+  const approxOrder = ["0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", ">50", "unknown"];
+  // Considera solo le chiavi per cui ci sono dati
+  const labels = approxOrder.filter(key => groupCountsApprox[key] !== undefined);
+  const sortedMaterials = Array.from(allMaterials).sort();
+
+  const datasets = sortedMaterials.map((material, idx) => ({
+    label: material,
+    data: labels.map(key => (groupCountsApprox[key]?.[material] || 0)),
+    backgroundColor: palette[idx % palette.length]
+  }));
+
+  new Chart(document.getElementById('chartApprox'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        title: { display: true, text: '% Lacuna (Approximated) per Material' }
+      },
+      scales: {
+        x: { stacked: true, title: { display: true, text: 'Approximated % Lacuna Groups' } },
+        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Number of Artifacts' } }
+      }
+    }
+  });
+}
+
+// Chart 3: Bar chart (non stacked) per la media numerica di % lacuna per materiale
+function renderChartMaterialAverage() {
+  const sortedMaterials = Array.from(allMaterials).sort();
+  const labels = sortedMaterials;
+  const averages = sortedMaterials.map(material => {
+    if (materialCounts[material]) {
+      return (materialSums[material] / materialCounts[material]).toFixed(2);
+    }
+    return 0;
+  });
+
+  new Chart(document.getElementById('chartMaterialAverage'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Average % Lacuna Value',
+        data: averages,
+        backgroundColor: sortedMaterials.map((_, idx) => palette[idx % palette.length])
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Average Numeric % Lacuna per Material' },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const material = context.label;
+              const avg = context.raw;
+              const count = materialCounts[material] || 0;
+              return `Avg: ${avg} - Total Objects: ${count}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Material' } },
+        y: { beginAtZero: true, title: { display: true, text: 'Average Value' } }
+      }
+    }
+  });
+}
+
+// Function to render material cards (modal with material distribution charts)
+// Ora, ogni doughnut mostra la distribuzione dei gruppi approssimati (groupCountsApprox)
+// e nella legenda viene mostrato il valore seguito da "%" (eccetto per "unknown")
 const backgroundImages = {
   "Earthenware": "assets/materials/fa-ence.jpg",
   "Stonewear": "assets/materials/gr-s.jpg",
@@ -204,37 +384,42 @@ const backgroundImages = {
   "Terracotta": "assets/materials/terre-cuite.jpg"
 };
 
-// Function to render material cards using Bootstrap collapse sections and modals
 function renderMaterialCards() {
   const container = document.getElementById("materialCardContainer");
   container.innerHTML = "";
 
-  const colors = {
-    "0-10%": "#4793AF",
-    "10-25%": "#FFC470",
-    "25-50%": "#DD5746",
-    "50-75%": "#8B322C",
-    "75-100%": "#B36A5E",
-    "range": "#A64942",
-    "other": "#D99152"
+  // Definiamo l'ordine dei gruppi per la distribuzione, lo stesso usato in Chart 2
+  const approxOrder = ["0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", ">50", "unknown"];
+  // Definiamo i colori per ogni gruppo (puoi personalizzarli)
+  const groupColors = {
+    "0": "#4793AF",
+    "5": "#FFC470",
+    "10": "#DD5746",
+    "15": "#8B322C",
+    "20": "#B36A5E",
+    "25": "#A64942",
+    "30": "#D99152",
+    "35": "#4793AF",
+    "40": "#FFC470",
+    "45": "#DD5746",
+    "50": "#8B322C",
+    ">50": "#B36A5E",
+    "unknown": "#A64942"
   };
 
-  const lacunaLabels = Object.keys(colors);
-  // Sorted list of translated materials
   const sortedMaterials = Array.from(allMaterials).sort();
 
   sortedMaterials.forEach(material => {
     const materialId = material.toLowerCase().replace(/[^a-z0-9]/g, "-");
-    const distribution = lacunaLabels.map(lacuna => ({
-      category: lacuna,
-      count: groupCounts[lacuna]?.[material] || 0
-    })).filter(entry => entry.count > 0);
+    // Costruiamo la distribuzione usando groupCountsApprox per il materiale corrente
+    const distribution = approxOrder.map(group => ({
+      category: group,
+      count: (groupCountsApprox[group] && groupCountsApprox[group][material]) ? groupCountsApprox[group][material] : 0
+    }));
 
-    // Use the background image from the dictionary if available
     const imagePath = backgroundImages[material] || `assets/materials/${materialId}.jpg`;
     console.log("Image path:", imagePath);
 
-    // Card HTML
     const cardHTML = `
       <div class="col-md-6 col-lg-4 mb-4">
         <div class="card h-100 shadow-sm" role="button" data-bs-toggle="modal" data-bs-target="#modal-${materialId}">
@@ -247,7 +432,6 @@ function renderMaterialCards() {
       </div>
     `;
 
-    // Modal HTML
     const modalHTML = `
       <div class="modal fade" id="modal-${materialId}" tabindex="-1" aria-labelledby="modalLabel-${materialId}" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -267,17 +451,17 @@ function renderMaterialCards() {
     container.insertAdjacentHTML("beforeend", cardHTML);
     document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-    // Initialize the chart when the modal is shown
     const targetModal = document.getElementById(`modal-${materialId}`);
     targetModal.addEventListener('shown.bs.modal', function () {
       const ctx = document.getElementById(`chart-${materialId}`).getContext('2d');
       new Chart(ctx, {
         type: 'doughnut',
         data: {
-          labels: distribution.map(d => d.category),
+          // Per i label, aggiungiamo "%" accanto al valore se non è "unknown"
+          labels: distribution.map(d => (d.category === "unknown" ? d.category : d.category + "%")),
           datasets: [{
             data: distribution.map(d => d.count),
-            backgroundColor: distribution.map(d => colors[d.category])
+            backgroundColor: distribution.map(d => groupColors[d.category] || "#cccccc")
           }]
         },
         options: {
