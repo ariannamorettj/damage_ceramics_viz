@@ -33,10 +33,12 @@ const countryCoordinates = {
   "392": [36.2048, 138.2529],   // Japan
   "MAG": [32.0000, -5.0000],    // Maghreb region (approximate)
   "604": [-12.0464, -77.0428],   // Peru (Lima)
-  "MED": [41.33, 19.82] // Mediterranean area (roman - bizantine influence)
+  "MED": [41.0082, 28.9784], // Mediterranean area (Istanbul: chosen for characteristics related to the object itself)
+  "788": [33.8869, 9.5375]      // Tunisia (country center)
+
 };
 
-const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver2.csv';
+const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver3.csv';
 
 const palette = ["#4793AF", "#FFC470", "#DD5746", "#8B322C", "#B36A5E", "#A64942", "#D99152"];
 const groupCounts = {};
@@ -134,7 +136,7 @@ function addMarkers(data) {
   data.forEach(row => {
     const inventaire = row["inventaire"];
     let countryCode = row["provenance (country code)"];
-    const provenanceText = row["provenance"];
+    const provenanceText = row["provenance@en"];
 
     if (countryCode) {
       // Split by semicolon and take the first value

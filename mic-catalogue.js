@@ -2,7 +2,7 @@
 const MAX_ATTEMPTS = 5;
 
 // Path to the CSV file
-const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver2.csv';
+const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver3.csv';
 
 // Dictionary to translate French material names to English
 const materialTranslations = {
