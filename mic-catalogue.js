@@ -2,7 +2,7 @@
 const MAX_ATTEMPTS = 5;
 
 // Path to the CSV file
-const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver6.csv';
+const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver7.csv';
 
 // Dictionary to translate French material names to English
 const materialTranslations = {
@@ -72,7 +72,7 @@ function renderCatalogue(groups) {
     const bgStyle = backgroundImages[material]
       ? `background: url('${backgroundImages[material]}') no-repeat center center; background-size: cover; padding: 20px; border-radius: 5px;`
       : '';
-    // Add a dark overlay to ensure text readability if there's a background image
+    // Add a dark overlay to ensure text readability over the background
     const overlayStyle = backgroundImages[material]
       ? `background-color: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;`
       : '';
@@ -90,24 +90,23 @@ function renderCatalogue(groups) {
 
     groups[material].forEach(row => {
       // Extract metadata
-      const inventaire = row["inventaire"] || "";
+      const inventaire = row["inventaire clean"] || "";
       const typologie = row["typologie"] || "";
-      const datation = row["datation"] || "";
-      const provenance = row["provenance"] || "";
-      const nbFragments = row["nombre de fragements"] || "";
+      const typologie_en = row["typologie@en"] || "";
+      const datation = row["Data"] || "";
+      const provenance = row["provenance@en"] || "";
+      const nbFragments = row["number of fragments clean"] || "";
       const missingPercentage = row["% lacunaire"] || "";
 
-      // Recupera il filename dalla colonna "pictures filenames"
+      // Retrieve filenames from the "pictures filenames" column and create an array
       const picturesFilenames = row["pictures filenames"] || "";
-      // Crea un array di filenames (filtra eventuali stringhe vuote)
       const images = picturesFilenames.split(/\r?\n/).map(f => f.trim()).filter(f => f.length > 0);
       // Set the base path for MIC images
       const basePath = "assets/catalogue/Faenza visualizazzioni";
 
-      // Se ci sono più immagini, genera un carosello
       let imageHtml = '';
       if (images.length > 1) {
-        // Genera un ID univoco per il carosello
+        // Generate a unique carousel ID
         const carouselId = `carousel-${inventaire}-${Math.random().toString(36).substr(2, 5)}`;
         imageHtml += `<div id="${carouselId}" class="carousel slide" data-bs-ride="carousel">
           <div class="carousel-indicators">`;
@@ -119,7 +118,9 @@ function renderCatalogue(groups) {
         images.forEach((img, i) => {
           const imagePath = `${basePath}/${img}`;
           imageHtml += `<div class="carousel-item ${i === 0 ? 'active' : ''}">
-              <img src="${imagePath}" class="d-block w-100" alt="Catalogue Number: ${inventaire}"
+              <img src="${imagePath}" class="d-block w-100"
+                   style="height:300px; object-fit: contain;"
+                   alt="Catalogue Number: ${inventaire}"
                    data-filename="${img}"
                    onerror="tryNextImage(this, '${basePath}', this.getAttribute('data-filename'));">
             </div>`;
@@ -135,10 +136,12 @@ function renderCatalogue(groups) {
           </button>
         </div>`;
       } else {
-        // Se c'è una sola immagine, visualizza l'elemento <img> singolo
+        // If only one image, display it as a single image element
         const firstFilename = images[0] || "";
         const imagePath = `${basePath}/${firstFilename}`;
-        imageHtml += `<img src="${imagePath}" class="card-img-top" alt="Catalogue Number: ${inventaire}"
+        imageHtml += `<img src="${imagePath}" class="card-img-top"
+                      style="height:300px; object-fit: contain;"
+                      alt="Catalogue Number: ${inventaire}"
                       data-filename="${firstFilename}"
                       onerror="tryNextImage(this, '${basePath}', this.getAttribute('data-filename'));">`;
       }
@@ -149,7 +152,7 @@ function renderCatalogue(groups) {
             ${imageHtml}
             <div class="card-body">
               <h5 class="card-title">${inventaire}</h5>
-              <p class="card-text"><strong>Type:</strong> ${typologie}</p>
+              <p class="card-text"><strong>Type:</strong> ${typologie_en}</p>
               <p class="card-text"><strong>Date:</strong> ${datation}</p>
               <p class="card-text"><strong>Provenance:</strong> ${provenance}</p>
               <p class="card-text"><strong>Fragments:</strong> ${nbFragments}</p>
@@ -175,7 +178,7 @@ function tryNextImage(img, basePath, filename) {
   let attempt = parseInt(img.getAttribute('data-attempt')) || 0;
   attempt++;
   if (attempt > MAX_ATTEMPTS) {
-    // Maximum attempts reached; use the alt image for MIC collection
+    // Maximum attempts reached: use the alt image for MIC collection
     img.onerror = null;
     img.src = `${basePath}/alt_mic.png`;
     return;
