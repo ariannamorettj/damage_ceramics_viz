@@ -2,7 +2,7 @@
 const MAX_ATTEMPTS = 5;
 
 // Path to the CSV file
-const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver5.csv';
+const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver6.csv';
 
 // Dictionary to translate French material names to English
 const materialTranslations = {
@@ -96,19 +96,25 @@ function renderCatalogue(groups) {
       const provenance = row["provenance"] || "";
       const nbFragments = row["nombre de fragements"] || "";
       const missingPercentage = row["% lacunaire"] || "";
+
+      // Recupera il filename dalla colonna "pictures filenames"
+      // Se ci sono più filename, prende il primo (dividendo per a capo)
+      const picturesFilenames = row["pictures filenames"] || "";
+      const firstFilename = picturesFilenames.split(/\r?\n/)[0].trim();
+
       // Set the base path for Sèvres images
       const basePath = "assets/catalogue/Sèvres visualizazzioni";
-      // Derive initial image path (assuming images are named as <inventaire>.jpeg)
-      const imagePath = `${basePath}/${inventaire}.JPG`;
+      // Derive image path using the filename from the CSV
+      const imagePath = `${basePath}/${firstFilename}`;
 
       html += `
         <div class="col-md-4 mb-3">
           <div class="card h-100">
             <img src="${imagePath}" class="card-img-top" alt="Catalogue Number: ${inventaire}"
-                 data-inventaire="${inventaire}"
-                 onerror="tryNextImage(this, '${basePath}', this.getAttribute('data-inventaire'));">
+                 data-filename="${firstFilename}"
+                 onerror="tryNextImage(this, '${basePath}', this.getAttribute('data-filename'));">
             <div class="card-body">
-              <h5 class="card-title">Catalogue Number: ${inventaire}</h5>
+              <h5 class="card-title">${inventaire}</h5>
               <p class="card-text"><strong>Type:</strong> ${typologie}</p>
               <p class="card-text"><strong>Date:</strong> ${datation}</p>
               <p class="card-text"><strong>Provenance:</strong> ${provenance}</p>
@@ -131,16 +137,16 @@ function renderCatalogue(groups) {
 }
 
 // Helper function to try loading alternate image filenames for missing images
-function tryNextImage(img, basePath, inventaire) {
+function tryNextImage(img, basePath, filename) {
   let attempt = parseInt(img.getAttribute('data-attempt')) || 0;
   attempt++;
   if (attempt > MAX_ATTEMPTS) {
-    // Maximum attempts reached: use a placeholder image
+    // Maximum attempts reached: use the alt image for Sèvres collection
     img.onerror = null;
-    img.src = `${basePath}/placeholder.JPG`;
+    img.src = `${basePath}/alt_sevres.png`;
     return;
   }
   img.setAttribute('data-attempt', attempt);
-  // Update image source to try the next numbered file (e.g., "12345 (1).jpeg")
-  img.src = `${basePath}/${inventaire} (${attempt}).JPG`;
+  // Update image source to try the next numbered file (e.g., "filename (1).JPG")
+  img.src = `${basePath}/${filename} (${attempt}).JPG`;
 }

@@ -2,7 +2,7 @@
 const MAX_ATTEMPTS = 5;
 
 // Path to the CSV file
-const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver5.csv';
+const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver6.csv';
 
 // Dictionary to translate French material names to English
 const materialTranslations = {
@@ -96,18 +96,23 @@ function renderCatalogue(groups) {
       const provenance = row["provenance"] || "";
       const nbFragments = row["nombre de fragements"] || "";
       const missingPercentage = row["% lacunaire"] || "";
-      // Derive image path (for MIC collection, images are in the Faenza folder)
+
+      // Recupera il filename dall'apposita colonna (prendi il primo se ce ne sono più di uno)
+      const picturesFilenames = row["pictures filenames"] || "";
+      const firstFilename = picturesFilenames.split(/\r?\n/)[0].trim();
+
+      // Derive image path: utilizza il filename preso dal CSV
       const basePath = "assets/catalogue/Faenza visualizazzioni";
-      const imagePath = `${basePath}/${inventaire}.JPG`;
+      const imagePath = `${basePath}/${firstFilename}`;
 
       html += `
         <div class="col-md-4 mb-3">
           <div class="card h-100">
             <img src="${imagePath}" class="card-img-top" alt="Catalogue Number: ${inventaire}"
-                 data-inventaire="${inventaire}"
-                 onerror="tryNextImage(this, '${basePath}', this.getAttribute('data-inventaire'));">
+                 data-filename="${firstFilename}"
+                 onerror="tryNextImage(this, '${basePath}', this.getAttribute('data-filename'));">
             <div class="card-body">
-              <h5 class="card-title">Catalogue Number: ${inventaire}</h5>
+              <h5 class="card-title">${inventaire}</h5>
               <p class="card-text"><strong>Type:</strong> ${typologie}</p>
               <p class="card-text"><strong>Date:</strong> ${datation}</p>
               <p class="card-text"><strong>Provenance:</strong> ${provenance}</p>
@@ -130,17 +135,17 @@ function renderCatalogue(groups) {
 }
 
 // Helper function that is called when an image fails to load.
-// It will try the next available file with pattern: "<inventaire> (n).JPG" for the MIC collection folder.
-function tryNextImage(img, basePath, inventaire) {
+// It will try the next available file with pattern: "<filename> (n).JPG" for the MIC collection folder.
+function tryNextImage(img, basePath, filename) {
   let attempt = parseInt(img.getAttribute('data-attempt')) || 0;
   attempt++;
   if (attempt > MAX_ATTEMPTS) {
-    // Maximum attempts reached; use placeholder image
+    // Maximum attempts reached; use the alt image for MIC collection
     img.onerror = null;
-    img.src = `${basePath}/placeholder.JPG`;
+    img.src = `${basePath}/alt_mic.png`;
     return;
   }
   img.setAttribute('data-attempt', attempt);
-  // Update image source to the next available filename (e.g., "12345 (1).JPG")
-  img.src = `${basePath}/${inventaire} (${attempt}).JPG`;
+  // Update image source to try the next available filename (e.g., "filename (1).JPG")
+  img.src = `${basePath}/${filename} (${attempt}).JPG`;
 }

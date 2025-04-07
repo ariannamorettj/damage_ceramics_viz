@@ -37,7 +37,7 @@ const countryCoordinates = {
   "788": [33.8869, 9.5375]      // Tunisia (country center)
 };
 
-const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver5.csv';
+const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver6.csv';
 
 const palette = ["#4793AF", "#FFC470", "#DD5746", "#8B322C", "#B36A5E", "#A64942", "#D99152"];
 const allMaterials = new Set();
