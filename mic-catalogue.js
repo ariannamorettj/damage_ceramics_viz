@@ -97,20 +97,56 @@ function renderCatalogue(groups) {
       const nbFragments = row["nombre de fragements"] || "";
       const missingPercentage = row["% lacunaire"] || "";
 
-      // Recupera il filename dall'apposita colonna (prendi il primo se ce ne sono più di uno)
+      // Recupera il filename dalla colonna "pictures filenames"
       const picturesFilenames = row["pictures filenames"] || "";
-      const firstFilename = picturesFilenames.split(/\r?\n/)[0].trim();
-
-      // Derive image path: utilizza il filename preso dal CSV
+      // Crea un array di filenames (filtra eventuali stringhe vuote)
+      const images = picturesFilenames.split(/\r?\n/).map(f => f.trim()).filter(f => f.length > 0);
+      // Set the base path for MIC images
       const basePath = "assets/catalogue/Faenza visualizazzioni";
-      const imagePath = `${basePath}/${firstFilename}`;
+
+      // Se ci sono più immagini, genera un carosello
+      let imageHtml = '';
+      if (images.length > 1) {
+        // Genera un ID univoco per il carosello
+        const carouselId = `carousel-${inventaire}-${Math.random().toString(36).substr(2, 5)}`;
+        imageHtml += `<div id="${carouselId}" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-indicators">`;
+        images.forEach((img, i) => {
+          imageHtml += `<button type="button" data-bs-target="#${carouselId}" data-bs-slide-to="${i}" class="${i === 0 ? 'active' : ''}" ${i === 0 ? 'aria-current="true"' : ''} aria-label="Slide ${i + 1}"></button>`;
+        });
+        imageHtml += `</div>
+          <div class="carousel-inner">`;
+        images.forEach((img, i) => {
+          const imagePath = `${basePath}/${img}`;
+          imageHtml += `<div class="carousel-item ${i === 0 ? 'active' : ''}">
+              <img src="${imagePath}" class="d-block w-100" alt="Catalogue Number: ${inventaire}"
+                   data-filename="${img}"
+                   onerror="tryNextImage(this, '${basePath}', this.getAttribute('data-filename'));">
+            </div>`;
+        });
+        imageHtml += `</div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
+        </div>`;
+      } else {
+        // Se c'è una sola immagine, visualizza l'elemento <img> singolo
+        const firstFilename = images[0] || "";
+        const imagePath = `${basePath}/${firstFilename}`;
+        imageHtml += `<img src="${imagePath}" class="card-img-top" alt="Catalogue Number: ${inventaire}"
+                      data-filename="${firstFilename}"
+                      onerror="tryNextImage(this, '${basePath}', this.getAttribute('data-filename'));">`;
+      }
 
       html += `
         <div class="col-md-4 mb-3">
           <div class="card h-100">
-            <img src="${imagePath}" class="card-img-top" alt="Catalogue Number: ${inventaire}"
-                 data-filename="${firstFilename}"
-                 onerror="tryNextImage(this, '${basePath}', this.getAttribute('data-filename'));">
+            ${imageHtml}
             <div class="card-body">
               <h5 class="card-title">${inventaire}</h5>
               <p class="card-text"><strong>Type:</strong> ${typologie}</p>
@@ -134,8 +170,7 @@ function renderCatalogue(groups) {
   container.innerHTML = html;
 }
 
-// Helper function that is called when an image fails to load.
-// It will try the next available file with pattern: "<filename> (n).JPG" for the MIC collection folder.
+// Helper function to try loading alternate image filenames for missing images
 function tryNextImage(img, basePath, filename) {
   let attempt = parseInt(img.getAttribute('data-attempt')) || 0;
   attempt++;
