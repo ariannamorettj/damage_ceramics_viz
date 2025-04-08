@@ -37,23 +37,39 @@ body {
   align-items: center;
   justify-content: center;
   background-attachment: fixed;
+  text-align: center;
+  color: #FFFFFF;
 }
 
-.hero-overlay {
-  background-color: rgba(0, 0, 0, 0.6); /* overlay scuro per contrasto */
-  width: 100%;
-  height: 100%;
-  padding: 3rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
+/* Pseudo-elemento per scurire l'immagine di sfondo */
+.hero-image::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.4); /* Aumenta questo valore per uno scurimento maggiore (ad esempio 0.5 o 0.6) */
+  z-index: 1;
 }
 
+/* Assicura che il contenuto (testo) sia posizionato sopra l'overlay */
+.hero-image > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Migliora la leggibilità del testo con un'ombra più marcata */
 .hero-image h1 {
   font-family: 'Agu Display', cursive;
   font-size: 3.2rem;
   letter-spacing: 1px;
+  text-shadow: 4px 4px 6px rgba(0, 0, 0, 0.8);
+}
+
+.hero-image p {
+  font-size: 1.2rem;
+  text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.8);
 }
 
 h2{
@@ -232,30 +248,75 @@ footer {
 #mic-hero {
   background: url('assets/filling/10.jpg') no-repeat center center;
   background-size: cover;
+  position: relative;
+  color: #FFFFFF;
+  text-align: center;
+}
+
+#mic-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.6);  /* Regola l'opacità per un effetto più scuro se necessario */
+  z-index: 1;
+}
+
+/* Assicura che il contenuto (testo) sia sempre in primo piano */
+#mic-hero > * {
+  position: relative;
+  z-index: 2;
+}
+
+#mic-hero h1 {
+  font-family: 'Agu Display', cursive;
+  font-size: 3.2rem;
+  letter-spacing: 1px;
+  text-shadow: 4px 4px 6px rgba(0, 0, 0, 0.8);
 }
 
 /* Stili specifici per l'hero della collezione SEVRES */
 #sevres-hero {
   background: url('assets/filling/11.jpg') no-repeat center center;
   background-size: cover;
+  position: relative;
+  color: #FFFFFF;
+  text-align: center;
 }
 
+#sevres-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.6);  /* Regola l'opacità per un effetto più scuro se necessario */
+  z-index: 1;
+}
 
-#mic-hero h1 {
-  font-family: 'Agu Display', cursive;
-  font-size: 3.2rem;
-  letter-spacing: 1px;
+/* Assicura che il contenuto (testo) sia sempre in primo piano */
+#sevres-hero > * {
+  position: relative;
+  z-index: 2;
 }
 
 #sevres-hero h1 {
   font-family: 'Agu Display', cursive;
   font-size: 3.2rem;
   letter-spacing: 1px;
+  text-shadow: 4px 4px 6px rgba(0, 0, 0, 0.8);
 }
 
-
-
-
-
+.subtitle-paragraph {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 800px; /* Imposta la larghezza massima, puoi modificarla se serve */
+  font-size: 1.2rem; /* Puoi regolare la dimensione del font se necessario */
+  padding: 0 1rem; /* Spazio interno per una migliore visualizzazione su schermi piccoli */
+}
 
 
