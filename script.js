@@ -66,7 +66,7 @@ const countryCoordinates = {
   "788": [33.8869, 9.5375]      // Tunisia (country center)
 };
 
-const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver8.csv';
+const csvFilePath = 'input_data_per_web/unified_dataset_ceramics_ver9.csv';
 
 const palette = ["#4793AF", "#FFC470", "#DD5746", "#8B322C", "#B36A5E", "#A64942", "#D99152"];
 const allMaterials = new Set();
@@ -260,7 +260,7 @@ function addMarkers(data) {
     // Recupera il filename dalla colonna "pictures filenames" (se multipli, prendi il primo)
     const picturesFilenames = row["pictures filenames"] || "";
     const firstFilename = picturesFilenames.split(/\r?\n/)[0].trim();
-    const imagePath = `${basePathForImage}/${firstFilename}`;
+    const imagePath = firstFilename ? `${basePathForImage}/${firstFilename}` : null;
     console.log("Image path:", imagePath);
 
     // Pulizia del country code: prendi il primo se sono separati da ";" ed elimina eventuali "(?)"
@@ -273,13 +273,19 @@ function addMarkers(data) {
     if (countryCode && countryCoordinates[countryCode]) {
       const coords = countryCoordinates[countryCode];
       // Popup con metadati e miniatura (max-width:150px)
-      const popupContent = `
-        <strong>Inventory:</strong> ${inventaire}<br>
-        <strong>Provenance:</strong> ${provenanceText}<br>
+
+    let popupContent = `
+      <strong>Inventory:</strong> ${inventaire}<br>
+      <strong>Provenance:</strong> ${provenanceText}<br>
+    `;
+
+    if (firstFilename && !firstFilename.toLowerCase().includes("placeholder")) {
+      popupContent += `
         <div style="text-align: center;">
-          <img src="${imagePath}" alt="Image for ${inventaire}" style="max-width: 90%; height: auto; display: inline-block; margin: 5px auto;">
+          <img src="${imagePath}" style="max-width: 90%; height: auto; display: inline-block; margin: 5px auto;">
         </div>
-        `;
+      `;
+    }
       const marker = L.marker(coords);
       marker.bindPopup(popupContent);
       markersCluster.addLayer(marker);

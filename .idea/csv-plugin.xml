@@ -45,6 +45,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/input_data_per_web/unified_dataset_ceramics_ver9.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>
