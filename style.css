@@ -319,4 +319,11 @@ footer {
   padding: 0 1rem; /* Spazio interno per una migliore visualizzazione su schermi piccoli */
 }
 
-
+.card-img-top {
+  object-fit: cover;
+  height: 200px;
+  width: auto;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
